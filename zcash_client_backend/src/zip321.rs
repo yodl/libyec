@@ -178,7 +178,7 @@ impl TransactionRequest {
                     .collect::<Vec<String>>();
 
                 Some(format!(
-                    "zcash:{}?{}",
+                    "ycash:{}?{}",
                     payment.recipient_address.encode(params),
                     query_params.join("&")
                 ))
@@ -203,7 +203,7 @@ impl TransactionRequest {
 
     /// Parse the provided URI to a payment request value.
     pub fn from_uri<P: consensus::Parameters>(params: &P, uri: &str) -> Result<Self, String> {
-        // Parse the leading zcash:<address>
+        // Parse the leading ycash:<address>
         let (rest, primary_addr_param) =
             parse::lead_addr(params)(uri).map_err(|e| e.to_string())?;
 
@@ -446,13 +446,13 @@ mod parse {
         Ok(payment)
     }
 
-    /// Parses and consumes the leading "zcash:\[address\]" from a ZIP 321 URI.
+    /// Parses and consumes the leading "ycash:\[address\]" from a ZIP 321 URI.
     pub fn lead_addr<P: consensus::Parameters>(
         params: &P,
     ) -> impl Fn(&str) -> IResult<&str, Option<IndexedParam>> + '_ {
         move |input: &str| {
             map_opt(
-                preceded(tag("zcash:"), take_until("?")),
+                preceded(tag("ycash:"), take_until("?")),
                 |addr_str: &str| {
                     if addr_str.is_empty() {
                         Some(None) // no address is ok, so wrap in `Some`
@@ -752,13 +752,13 @@ mod tests {
 
     #[test]
     fn test_zip321_parse_simple() {
-        let uri = "zcash:ztestsapling1n65uaftvs2g7075q2x2a04shfk066u3lldzxsrprfrqtzxnhc9ps73v4lhx4l9yfxj46sl0q90k?amount=3768769.02796286&message=";
+        let uri = "ycash:ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg?amount=3768769.02796286&message=";
         let parse_result = TransactionRequest::from_uri(&TEST_NETWORK, &uri).unwrap();
 
         let expected = TransactionRequest {
             payments: vec![
                 Payment {
-                    recipient_address: RecipientAddress::Shielded(decode_payment_address(&TEST_NETWORK.hrp_sapling_payment_address(), "ztestsapling1n65uaftvs2g7075q2x2a04shfk066u3lldzxsrprfrqtzxnhc9ps73v4lhx4l9yfxj46sl0q90k").unwrap().unwrap()),
+                    recipient_address: RecipientAddress::Shielded(decode_payment_address(&TEST_NETWORK.hrp_sapling_payment_address(), "ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg").unwrap().unwrap()),
                     amount: Amount::from_u64(376876902796286).unwrap(),
                     memo: None,
                     label: None,
@@ -776,7 +776,7 @@ mod tests {
         let req = TransactionRequest {
             payments: vec![
                 Payment {
-                    recipient_address: RecipientAddress::Shielded(decode_payment_address(TEST_NETWORK.hrp_sapling_payment_address(), "ztestsapling1n65uaftvs2g7075q2x2a04shfk066u3lldzxsrprfrqtzxnhc9ps73v4lhx4l9yfxj46sl0q90k").unwrap().unwrap()),
+                    recipient_address: RecipientAddress::Shielded(decode_payment_address(TEST_NETWORK.hrp_sapling_payment_address(), "ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg").unwrap().unwrap()),
                     amount: Amount::from_u64(0).unwrap(),
                     memo: None,
                     label: None,
@@ -810,14 +810,14 @@ mod tests {
 
     #[test]
     fn test_zip321_spec_valid_examples() {
-        let valid_1 = "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase";
+        let valid_1 = "ycash:ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase";
         let v1r = TransactionRequest::from_uri(&TEST_NETWORK, &valid_1).unwrap();
         assert_eq!(
             v1r.payments.get(0).map(|p| p.amount),
             Some(Amount::from_u64(100000000).unwrap())
         );
 
-        let valid_2 = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.456&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok";
+        let valid_2 = "ycash:?address=smJWoGdqixeFEbhhLrU1TrXGA6wYAUoeG1J&amount=123.456&address.1=ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok";
         let mut v2r = TransactionRequest::from_uri(&TEST_NETWORK, &valid_2).unwrap();
         v2r.normalize(&TEST_NETWORK);
         assert_eq!(
@@ -831,7 +831,7 @@ mod tests {
 
         // valid; amount just less than MAX_MONEY
         // 20999999.99999999
-        let valid_3 = "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez?amount=20999999.99999999";
+        let valid_3 = "ycash:ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg?amount=20999999.99999999";
         let v3r = TransactionRequest::from_uri(&TEST_NETWORK, &valid_3).unwrap();
         assert_eq!(
             v3r.payments.get(0).map(|p| p.amount),
@@ -840,7 +840,7 @@ mod tests {
 
         // valid; MAX_MONEY
         // 21000000
-        let valid_4 = "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez?amount=21000000";
+        let valid_4 = "ycash:ytestsapling1qqqqqqqqqqqqqqqqqrjq05nyfku05msvu49mawhg6kr0wwljahypwyk2h88z6975u563j9k7cxg?amount=21000000";
         let v4r = TransactionRequest::from_uri(&TEST_NETWORK, &valid_4).unwrap();
         assert_eq!(
             v4r.payments.get(0).map(|p| p.amount),
@@ -851,23 +851,23 @@ mod tests {
     #[test]
     fn test_zip321_spec_invalid_examples() {
         // invalid; missing `address=`
-        let invalid_1 = "zcash:?amount=3491405.05201255&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=5740296.87793245";
+        let invalid_1 = "ycash:?amount=3491405.05201255&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=5740296.87793245";
         let i1r = TransactionRequest::from_uri(&TEST_NETWORK, &invalid_1);
         assert!(i1r.is_err());
 
         // invalid; missing `address.1=`
-        let invalid_2 = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=1&amount.1=2&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez";
+        let invalid_2 = "ycash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=1&amount.1=2&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez";
         let i2r = TransactionRequest::from_uri(&TEST_NETWORK, &invalid_2);
         assert!(i2r.is_err());
 
         // invalid; `address.0=` and `amount.0=` are not permitted (leading 0s).
-        let invalid_3 = "zcash:?address.0=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.0=2";
+        let invalid_3 = "ycash:?address.0=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.0=2";
         let i3r = TransactionRequest::from_uri(&TEST_NETWORK, &invalid_3);
         assert!(i3r.is_err());
 
         // invalid; duplicate `amount=` field
         let invalid_4 =
-            "zcash:?amount=1.234&amount=2.345&address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU";
+            "ycash:?amount=1.234&amount=2.345&address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU";
         let i4r = TransactionRequest::from_uri(&TEST_NETWORK, &invalid_4);
         assert!(i4r.is_err());
 

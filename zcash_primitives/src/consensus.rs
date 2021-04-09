@@ -192,9 +192,10 @@ impl Parameters for MainNetwork {
         match nu {
             NetworkUpgrade::Overwinter => Some(BlockHeight(347_500)),
             NetworkUpgrade::Sapling => Some(BlockHeight(419_200)),
-            NetworkUpgrade::Blossom => Some(BlockHeight(653_600)),
-            NetworkUpgrade::Heartwood => Some(BlockHeight(903_000)),
-            NetworkUpgrade::Canopy => Some(BlockHeight(1_046_400)),
+            NetworkUpgrade::Ycash => Some(BlockHeight(570_000)),
+            NetworkUpgrade::Blossom => Some(BlockHeight(10_000_000)),
+            NetworkUpgrade::Heartwood => Some(BlockHeight(20_000_000)),
+            NetworkUpgrade::Canopy => Some(BlockHeight(30_000_000)),
             #[cfg(feature = "zfuture")]
             NetworkUpgrade::ZFuture => None,
         }
@@ -236,9 +237,10 @@ impl Parameters for TestNetwork {
         match nu {
             NetworkUpgrade::Overwinter => Some(BlockHeight(207_500)),
             NetworkUpgrade::Sapling => Some(BlockHeight(280_000)),
-            NetworkUpgrade::Blossom => Some(BlockHeight(584_000)),
-            NetworkUpgrade::Heartwood => Some(BlockHeight(903_800)),
-            NetworkUpgrade::Canopy => Some(BlockHeight(1_028_500)),
+            NetworkUpgrade::Ycash => Some(BlockHeight(510_248)),
+            NetworkUpgrade::Blossom => Some(BlockHeight(10_000_000)),
+            NetworkUpgrade::Heartwood => Some(BlockHeight(20_000_000)),
+            NetworkUpgrade::Canopy => Some(BlockHeight(30_000_000)),
             #[cfg(feature = "zfuture")]
             NetworkUpgrade::ZFuture => None,
         }
@@ -340,6 +342,10 @@ pub enum NetworkUpgrade {
     ///
     /// [Sapling]: https://z.cash/upgrade/sapling/
     Sapling,
+    /// The [Ycash] network upgrade.
+    ///
+    /// [Ycash]: https://y.cash
+    Ycash,
     /// The [Blossom] network upgrade.
     ///
     /// [Blossom]: https://z.cash/upgrade/blossom/
@@ -366,6 +372,7 @@ impl fmt::Display for NetworkUpgrade {
         match self {
             NetworkUpgrade::Overwinter => write!(f, "Overwinter"),
             NetworkUpgrade::Sapling => write!(f, "Sapling"),
+            NetworkUpgrade::Ycash => write!(f, "Ycash"),
             NetworkUpgrade::Blossom => write!(f, "Blossom"),
             NetworkUpgrade::Heartwood => write!(f, "Heartwood"),
             NetworkUpgrade::Canopy => write!(f, "Canopy"),
@@ -380,6 +387,7 @@ impl NetworkUpgrade {
         match self {
             NetworkUpgrade::Overwinter => BranchId::Overwinter,
             NetworkUpgrade::Sapling => BranchId::Sapling,
+            NetworkUpgrade::Ycash => BranchId::Ycash,
             NetworkUpgrade::Blossom => BranchId::Blossom,
             NetworkUpgrade::Heartwood => BranchId::Heartwood,
             NetworkUpgrade::Canopy => BranchId::Canopy,
@@ -396,6 +404,7 @@ impl NetworkUpgrade {
 const UPGRADES_IN_ORDER: &[NetworkUpgrade] = &[
     NetworkUpgrade::Overwinter,
     NetworkUpgrade::Sapling,
+    NetworkUpgrade::Ycash,
     NetworkUpgrade::Blossom,
     NetworkUpgrade::Heartwood,
     NetworkUpgrade::Canopy,
@@ -424,6 +433,8 @@ pub enum BranchId {
     Overwinter,
     /// The consensus rules deployed by [`NetworkUpgrade::Sapling`].
     Sapling,
+    /// The consensus rules deployed by [`NetworkUpgrade::Ycash`].
+    Ycash,
     /// The consensus rules deployed by [`NetworkUpgrade::Blossom`].
     Blossom,
     /// The consensus rules deployed by [`NetworkUpgrade::Heartwood`].
@@ -444,6 +455,7 @@ impl TryFrom<u32> for BranchId {
             0 => Ok(BranchId::Sprout),
             0x5ba8_1b19 => Ok(BranchId::Overwinter),
             0x76b8_09bb => Ok(BranchId::Sapling),
+            0x374d_694f => Ok(BranchId::Ycash),
             0x2bb4_0e60 => Ok(BranchId::Blossom),
             0xf5b9_230b => Ok(BranchId::Heartwood),
             0xe9ff_75a6 => Ok(BranchId::Canopy),
@@ -460,6 +472,7 @@ impl From<BranchId> for u32 {
             BranchId::Sprout => 0,
             BranchId::Overwinter => 0x5ba8_1b19,
             BranchId::Sapling => 0x76b8_09bb,
+            BranchId::Ycash => 0x374d_694f,
             BranchId::Blossom => 0x2bb4_0e60,
             BranchId::Heartwood => 0xf5b9_230b,
             BranchId::Canopy => 0xe9ff_75a6,
@@ -540,6 +553,10 @@ mod tests {
             BranchId::Sapling,
         );
         assert_eq!(
+            BranchId::for_height(&MAIN_NETWORK, BlockHeight(570_000)),
+            BranchId::Ycash,
+        );        /*
+        assert_eq!(
             BranchId::for_height(&MAIN_NETWORK, BlockHeight(903_000)),
             BranchId::Heartwood,
         );
@@ -551,5 +568,6 @@ mod tests {
             BranchId::for_height(&MAIN_NETWORK, BlockHeight(5_000_000)),
             BranchId::Canopy,
         );
+        */
     }
 }

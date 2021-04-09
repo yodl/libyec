@@ -31,16 +31,16 @@ pub const HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY: &str = "zxviewregtestsapling";
 ///
 /// [`PaymentAddress`]: crate::sapling::PaymentAddress
 /// [the `zcashd` codebase]: <https://github.com/zcash/zcash/blob/128d863fb8be39ee294fda397c1ce3ba3b889cb2/src/chainparams.cpp#L493>
-pub const HRP_SAPLING_PAYMENT_ADDRESS: &str = "zregtestsapling";
+pub const HRP_SAPLING_PAYMENT_ADDRESS: &str = "yregtestsapling";
 
 /// The prefix for a Base58Check-encoded regtest [`TransparentAddress::PublicKey`].
 /// Same as the testnet prefix.
 ///
 /// [`TransparentAddress::PublicKey`]: crate::legacy::TransparentAddress::PublicKey
-pub const B58_PUBKEY_ADDRESS_PREFIX: [u8; 2] = [0x1d, 0x25];
+pub const B58_PUBKEY_ADDRESS_PREFIX: [u8; 2] = [0x1c, 0x95];
 
 /// The prefix for a Base58Check-encoded regtest [`TransparentAddress::Script`].
 /// Same as the testnet prefix.
 ///
 /// [`TransparentAddress::Script`]: crate::legacy::TransparentAddress::Script
-pub const B58_SCRIPT_ADDRESS_PREFIX: [u8; 2] = [0x1c, 0xba];
+pub const B58_SCRIPT_ADDRESS_PREFIX: [u8; 2] = [0x1c, 0x2a];
