@@ -130,7 +130,7 @@ pub fn decode_extended_full_viewing_key(
 ///
 /// assert_eq!(
 ///     encode_payment_address(HRP_SAPLING_PAYMENT_ADDRESS, &pa),
-///     "ztestsapling1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75ss7jnk",
+///     "ytestsapling1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle756zm558",
 /// );
 /// ```
 /// [`PaymentAddress`]: zcash_primitives::sapling::PaymentAddress
@@ -169,7 +169,7 @@ pub fn encode_payment_address(hrp: &str, addr: &PaymentAddress) -> String {
 /// assert_eq!(
 ///     decode_payment_address(
 ///         HRP_SAPLING_PAYMENT_ADDRESS,
-///         "ztestsapling1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75ss7jnk",
+///         "ytestsapling1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle756zm558",
 ///     ),
 ///     Ok(Some(pa)),
 /// );
@@ -206,7 +206,7 @@ pub fn decode_payment_address(hrp: &str, s: &str) -> Result<Option<PaymentAddres
 ///         &B58_SCRIPT_ADDRESS_PREFIX,
 ///         &TransparentAddress::PublicKey([0; 20]),
 ///     ),
-///     "tm9iMLAuYMzJ6jtFLcA7rzUmfreGuKvr7Ma",
+///     "smD3VYXz481ZvyUAs5k9yARaPE1B4ySFMDJ",
 /// );
 ///
 /// assert_eq!(
@@ -215,7 +215,7 @@ pub fn decode_payment_address(hrp: &str, s: &str) -> Result<Option<PaymentAddres
 ///         &B58_SCRIPT_ADDRESS_PREFIX,
 ///         &TransparentAddress::Script([0; 20]),
 ///     ),
-///     "t26YoyZ1iPgiMEWL4zGUm74eVWfhyDMXzY2",
+///     "s29sxBv6E9hzBU6FbTrWsH1TCt2c8tGc7zM",
 /// );
 /// ```
 /// [`TransparentAddress`]: zcash_primitives::legacy::TransparentAddress
@@ -258,7 +258,7 @@ pub fn encode_transparent_address(
 ///     decode_transparent_address(
 ///         &B58_PUBKEY_ADDRESS_PREFIX,
 ///         &B58_SCRIPT_ADDRESS_PREFIX,
-///         "tm9iMLAuYMzJ6jtFLcA7rzUmfreGuKvr7Ma",
+///         "smD3VYXz481ZvyUAs5k9yARaPE1B4ySFMDJ",
 ///     ),
 ///     Ok(Some(TransparentAddress::PublicKey([0; 20]))),
 /// );
@@ -267,9 +267,9 @@ pub fn encode_transparent_address(
 ///     decode_transparent_address(
 ///         &B58_PUBKEY_ADDRESS_PREFIX,
 ///         &B58_SCRIPT_ADDRESS_PREFIX,
-///         "t26YoyZ1iPgiMEWL4zGUm74eVWfhyDMXzY2",
+///         "smD3VYXz481ZvyUAs5k9yARaPE1B4ySFMDJ",
 ///     ),
-///     Ok(Some(TransparentAddress::Script([0; 20]))),
+///     Ok(Some(TransparentAddress::PublicKey([0; 20]))),
 /// );
 /// ```
 /// [`TransparentAddress`]: zcash_primitives::legacy::TransparentAddress
@@ -403,9 +403,9 @@ mod tests {
                 .unwrap();
 
         let encoded_main =
-            "zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c8v35z";
+            "ys1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c2480l";
         let encoded_test =
-            "ztestsapling1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75ss7jnk";
+            "ytestsapling1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle756zm558";
 
         assert_eq!(
             encode_payment_address(constants::mainnet::HRP_SAPLING_PAYMENT_ADDRESS, &addr),
