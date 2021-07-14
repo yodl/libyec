@@ -2,7 +2,7 @@
 use std::fmt::Debug;
 
 use zcash_primitives::{
-    consensus::{self, BranchId, NetworkUpgrade},
+    consensus::{self, NetworkUpgrade},
     memo::MemoBytes,
     sapling::prover::TxProver,
     transaction::{
@@ -183,11 +183,15 @@ where
         .get_target_and_anchor_heights()
         .and_then(|x| x.ok_or_else(|| Error::ScanRequired.into()))?;
 
-    let target_value = value + DEFAULT_FEE;
+    let target_value = (value + DEFAULT_FEE).ok_or_else(|| E::from(Error::InvalidAmount))?;
     let spendable_notes = wallet_db.select_spendable_notes(account, target_value, anchor_height)?;
 
     // Confirm we were able to select sufficient value
-    let selected_value = spendable_notes.iter().map(|n| n.note_value).sum();
+    let selected_value = spendable_notes
+        .iter()
+        .map(|n| n.note_value)
+        .sum::<Option<_>>()
+        .ok_or_else(|| E::from(Error::InvalidAmount))?;
     if selected_value < target_value {
         return Err(E::from(Error::InsufficientBalance(
             selected_value,
@@ -205,7 +209,7 @@ where
             .unwrap(); //DiversifyHash would have to unexpectedly return the zero point for this to be None
 
         let note = from
-            .create_note(u64::from(selected.note_value), selected.rseed)
+            .create_note(selected.note_value.into(), selected.rseed)
             .unwrap();
 
         let merkle_path = selected.witness.path().expect("the tree is not empty");
@@ -224,10 +228,7 @@ where
     }
     .map_err(Error::Builder)?;
 
-    let consensus_branch_id = BranchId::for_height(params, height);
-    let (tx, tx_metadata) = builder
-        .build(consensus_branch_id, &prover)
-        .map_err(Error::Builder)?;
+    let (tx, tx_metadata) = builder.build(&prover).map_err(Error::Builder)?;
 
     let output_index = match to {
         // Sapling outputs are shuffled, so we need to look up where the output ended up.
@@ -237,10 +238,13 @@ where
         },
         RecipientAddress::Transparent(addr) => {
             let script = addr.script();
-            tx.vout
-                .iter()
-                .enumerate()
-                .find(|(_, tx_out)| tx_out.script_pubkey == script)
+            tx.transparent_bundle()
+                .and_then(|b| {
+                    b.vout
+                        .iter()
+                        .enumerate()
+                        .find(|(_, tx_out)| tx_out.script_pubkey == script)
+                })
                 .map(|(index, _)| index)
                 .expect("we sent to this address")
         }

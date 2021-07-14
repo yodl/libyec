@@ -2,13 +2,17 @@
 
 use ff::PrimeField;
 use std::collections::HashSet;
+use std::convert::TryFrom;
 use subtle::{ConditionallySelectable, ConstantTimeEq, CtOption};
+use zcash_note_encryption::ShieldedOutput;
 use zcash_primitives::{
     consensus::{self, BlockHeight},
     merkle_tree::{CommitmentTree, IncrementalWitness},
-    note_encryption::try_sapling_compact_note_decryption,
-    sapling::{Node, Note, Nullifier, PaymentAddress, SaplingIvk},
-    transaction::TxId,
+    sapling::{
+        note_encryption::{try_sapling_compact_note_decryption, SaplingDomain},
+        Node, Note, Nullifier, PaymentAddress, SaplingIvk,
+    },
+    transaction::components::sapling::CompactOutputDescription,
     zip32::ExtendedFullViewingKey,
 };
 
@@ -28,7 +32,8 @@ use crate::wallet::{AccountId, WalletShieldedOutput, WalletShieldedSpend, Wallet
 fn scan_output<P: consensus::Parameters, K: ScanningKey>(
     params: &P,
     height: BlockHeight,
-    (index, output): (usize, CompactOutput),
+    index: usize,
+    output: CompactOutput,
     vks: &[(&AccountId, &K)],
     spent_from_accounts: &HashSet<AccountId>,
     tree: &mut CommitmentTree<Node>,
@@ -36,12 +41,10 @@ fn scan_output<P: consensus::Parameters, K: ScanningKey>(
     block_witnesses: &mut [&mut IncrementalWitness<Node>],
     new_witnesses: &mut [&mut IncrementalWitness<Node>],
 ) -> Option<WalletShieldedOutput<K::Nf>> {
-    let cmu = output.cmu().ok()?;
-    let epk = output.epk().ok()?;
-    let ct = output.ciphertext;
+    let output = CompactOutputDescription::try_from(output).ok()?;
 
     // Increment tree and witnesses
-    let node = Node::new(cmu.to_repr());
+    let node = Node::new(output.cmu.to_repr());
     for witness in existing_witnesses {
         witness.append(node).unwrap();
     }
@@ -54,7 +57,7 @@ fn scan_output<P: consensus::Parameters, K: ScanningKey>(
     tree.append(node).unwrap();
 
     for (account, vk) in vks.iter() {
-        let (note, to) = match vk.try_decryption(params, height, &epk, &cmu, &ct) {
+        let (note, to) = match vk.try_decryption(params, height, &output) {
             Some(ret) => ret,
             None => continue,
         };
@@ -72,8 +75,8 @@ fn scan_output<P: consensus::Parameters, K: ScanningKey>(
 
         return Some(WalletShieldedOutput {
             index,
-            cmu,
-            epk,
+            cmu: output.cmu,
+            epk: output.epk,
             account: **account,
             note,
             to,
@@ -106,13 +109,11 @@ pub trait ScanningKey {
 
     /// Attempts to decrypt a Sapling note and payment address
     /// from the specified ciphertext using this scanning key.
-    fn try_decryption<P: consensus::Parameters>(
+    fn try_decryption<P: consensus::Parameters, Output: ShieldedOutput<SaplingDomain<P>>>(
         &self,
         params: &P,
         height: BlockHeight,
-        epk: &jubjub::ExtendedPoint,
-        cmu: &bls12_381::Scalar,
-        ct: &[u8],
+        output: &Output,
     ) -> Option<(Note, PaymentAddress)>;
 
     /// Produces the nullifier for the specified note and witness, if possible.
@@ -130,15 +131,13 @@ pub trait ScanningKey {
 impl ScanningKey for ExtendedFullViewingKey {
     type Nf = Nullifier;
 
-    fn try_decryption<P: consensus::Parameters>(
+    fn try_decryption<P: consensus::Parameters, Output: ShieldedOutput<SaplingDomain<P>>>(
         &self,
         params: &P,
         height: BlockHeight,
-        epk: &jubjub::ExtendedPoint,
-        cmu: &bls12_381::Scalar,
-        ct: &[u8],
+        output: &Output,
     ) -> Option<(Note, PaymentAddress)> {
-        try_sapling_compact_note_decryption(params, height, &self.fvk.vk.ivk(), &epk, &cmu, &ct)
+        try_sapling_compact_note_decryption(params, height, &self.fvk.vk.ivk(), output)
     }
 
     fn nf(&self, note: &Note, witness: &IncrementalWitness<Node>) -> Self::Nf {
@@ -153,15 +152,13 @@ impl ScanningKey for ExtendedFullViewingKey {
 impl ScanningKey for SaplingIvk {
     type Nf = ();
 
-    fn try_decryption<P: consensus::Parameters>(
+    fn try_decryption<P: consensus::Parameters, Output: ShieldedOutput<SaplingDomain<P>>>(
         &self,
         params: &P,
         height: BlockHeight,
-        epk: &jubjub::ExtendedPoint,
-        cmu: &bls12_381::Scalar,
-        ct: &[u8],
+        output: &Output,
     ) -> Option<(Note, PaymentAddress)> {
-        try_sapling_compact_note_decryption(params, height, self, &epk, &cmu, &ct)
+        try_sapling_compact_note_decryption(params, height, self, output)
     }
 
     fn nf(&self, _note: &Note, _witness: &IncrementalWitness<Node>) {}
@@ -202,6 +199,8 @@ pub fn scan_block<P: consensus::Parameters, K: ScanningKey>(
     let block_height = block.height();
 
     for tx in block.vtx.into_iter() {
+        let txid = tx.txid();
+        let index = tx.index as usize;
         let num_spends = tx.spends.len();
         let num_outputs = tx.outputs.len();
 
@@ -253,7 +252,7 @@ pub fn scan_block<P: consensus::Parameters, K: ScanningKey>(
                 })
                 .collect();
 
-            for to_scan in tx.outputs.into_iter().enumerate() {
+            for (idx, c_out) in tx.outputs.into_iter().enumerate() {
                 // Grab mutable references to new witnesses from previous outputs
                 // in this transaction so that we can update them. Scoped so we
                 // don't hold mutable references to shielded_outputs for too long.
@@ -265,7 +264,8 @@ pub fn scan_block<P: consensus::Parameters, K: ScanningKey>(
                 if let Some(output) = scan_output(
                     params,
                     block_height,
-                    to_scan,
+                    idx,
+                    c_out,
                     vks,
                     &spent_from_accounts,
                     tree,
@@ -279,11 +279,9 @@ pub fn scan_block<P: consensus::Parameters, K: ScanningKey>(
         }
 
         if !(shielded_spends.is_empty() && shielded_outputs.is_empty()) {
-            let mut txid = TxId([0u8; 32]);
-            txid.0.copy_from_slice(&tx.hash);
             wtxs.push(WalletTx {
                 txid,
-                index: tx.index as usize,
+                index,
                 num_spends,
                 num_outputs,
                 shielded_spends,
@@ -305,8 +303,10 @@ mod tests {
         constants::SPENDING_KEY_GENERATOR,
         memo::MemoBytes,
         merkle_tree::CommitmentTree,
-        note_encryption::SaplingNoteEncryption,
-        sapling::{util::generate_random_rseed, Note, Nullifier, SaplingIvk},
+        sapling::{
+            note_encryption::sapling_note_encryption, util::generate_random_rseed, Note, Nullifier,
+            SaplingIvk,
+        },
         transaction::components::Amount,
         zip32::{ExtendedFullViewingKey, ExtendedSpendingKey},
     };
@@ -368,7 +368,7 @@ mod tests {
             value: value.into(),
             rseed,
         };
-        let encryptor = SaplingNoteEncryption::new(
+        let encryptor = sapling_note_encryption::<_, Network>(
             Some(extfvk.fvk.ovk),
             note.clone(),
             to,
@@ -395,7 +395,7 @@ mod tests {
         let mut cout = CompactOutput::new();
         cout.set_cmu(cmu);
         cout.set_epk(epk);
-        cout.set_ciphertext(enc_ciphertext[..52].to_vec());
+        cout.set_ciphertext(enc_ciphertext.as_ref()[..52].to_vec());
         let mut ctx = CompactTx::new();
         let mut txid = vec![0; 32];
         rng.fill_bytes(&mut txid);

@@ -489,8 +489,10 @@ impl<'a, P: consensus::Parameters> WalletWrite for DataConnStmtCache<'a, P> {
             //
             // Assumes that create_spend_to_address() will never be called in parallel, which is a
             // reasonable assumption for a light client such as a mobile phone.
-            for spend in &sent_tx.tx.shielded_spends {
-                wallet::mark_spent(up, tx_ref, &spend.nullifier)?;
+            if let Some(bundle) = sent_tx.tx.sapling_bundle() {
+                for spend in &bundle.shielded_spends {
+                    wallet::mark_spent(up, tx_ref, &spend.nullifier)?;
+                }
             }
 
             wallet::insert_sent_note(
@@ -563,8 +565,10 @@ mod tests {
         block::BlockHash,
         consensus::{BlockHeight, Network, NetworkUpgrade, Parameters},
         memo::MemoBytes,
-        note_encryption::SaplingNoteEncryption,
-        sapling::{util::generate_random_rseed, Note, Nullifier, PaymentAddress},
+        sapling::{
+            note_encryption::sapling_note_encryption, util::generate_random_rseed, Note, Nullifier,
+            PaymentAddress,
+        },
         transaction::components::Amount,
         zip32::ExtendedFullViewingKey,
     };
@@ -614,7 +618,7 @@ mod tests {
             value: value.into(),
             rseed,
         };
-        let encryptor = SaplingNoteEncryption::new(
+        let encryptor = sapling_note_encryption::<_, Network>(
             Some(extfvk.fvk.ovk),
             note.clone(),
             to,
@@ -629,7 +633,7 @@ mod tests {
         let mut cout = CompactOutput::new();
         cout.set_cmu(cmu);
         cout.set_epk(epk);
-        cout.set_ciphertext(enc_ciphertext[..52].to_vec());
+        cout.set_ciphertext(enc_ciphertext.as_ref()[..52].to_vec());
         let mut ctx = CompactTx::new();
         let mut txid = vec![0; 32];
         rng.fill_bytes(&mut txid);
@@ -674,7 +678,7 @@ mod tests {
                 value: value.into(),
                 rseed,
             };
-            let encryptor = SaplingNoteEncryption::new(
+            let encryptor = sapling_note_encryption::<_, Network>(
                 Some(extfvk.fvk.ovk),
                 note.clone(),
                 to,
@@ -688,7 +692,7 @@ mod tests {
             let mut cout = CompactOutput::new();
             cout.set_cmu(cmu);
             cout.set_epk(epk);
-            cout.set_ciphertext(enc_ciphertext[..52].to_vec());
+            cout.set_ciphertext(enc_ciphertext.as_ref()[..52].to_vec());
             cout
         });
 
@@ -699,10 +703,10 @@ mod tests {
             let note = Note {
                 g_d: change_addr.diversifier().g_d().unwrap(),
                 pk_d: *change_addr.pk_d(),
-                value: (in_value - value).into(),
+                value: (in_value - value).unwrap().into(),
                 rseed,
             };
-            let encryptor = SaplingNoteEncryption::new(
+            let encryptor = sapling_note_encryption::<_, Network>(
                 Some(extfvk.fvk.ovk),
                 note.clone(),
                 change_addr,
@@ -716,7 +720,7 @@ mod tests {
             let mut cout = CompactOutput::new();
             cout.set_cmu(cmu);
             cout.set_epk(epk);
-            cout.set_ciphertext(enc_ciphertext[..52].to_vec());
+            cout.set_ciphertext(enc_ciphertext.as_ref()[..52].to_vec());
             cout
         });
 
