@@ -512,6 +512,7 @@ mod tests {
             match nu {
                 NetworkUpgrade::Overwinter => Some(BlockHeight::from_u32(207_500)),
                 NetworkUpgrade::Sapling => Some(BlockHeight::from_u32(280_000)),
+                NetworkUpgrade::Ycash => Some(BlockHeight::from_u32(510_248)),
                 NetworkUpgrade::Blossom => Some(BlockHeight::from_u32(584_000)),
                 NetworkUpgrade::Heartwood => Some(BlockHeight::from_u32(903_800)),
                 NetworkUpgrade::Canopy => Some(BlockHeight::from_u32(1_028_500)),

@@ -219,7 +219,7 @@ impl TxVersion {
         match consensus_branch_id {
             BranchId::Sprout => TxVersion::Sprout(2),
             BranchId::Overwinter => TxVersion::Overwinter,
-            BranchId::Sapling | BranchId::Blossom | BranchId::Heartwood | BranchId::Canopy => {
+            BranchId::Sapling | BranchId::Ycash | BranchId::Blossom | BranchId::Heartwood | BranchId::Canopy => {
                 TxVersion::Sapling
             }
             BranchId::Nu5 => TxVersion::Zip225,
@@ -1024,7 +1024,7 @@ pub mod testing {
         match branch_id {
             BranchId::Sprout => (1..=2u32).prop_map(TxVersion::Sprout).boxed(),
             BranchId::Overwinter => Just(TxVersion::Overwinter).boxed(),
-            BranchId::Sapling | BranchId::Blossom | BranchId::Heartwood | BranchId::Canopy => {
+            BranchId::Sapling | BranchId::Ycash | BranchId::Blossom | BranchId::Heartwood | BranchId::Canopy => {
                 Just(TxVersion::Sapling).boxed()
             }
             BranchId::Nu5 => Just(TxVersion::Zip225).boxed(),

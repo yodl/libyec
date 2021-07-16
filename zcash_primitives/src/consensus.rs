@@ -544,6 +544,9 @@ impl BranchId {
                 .map(|lower| (lower, params.activation_height(NetworkUpgrade::Sapling))),
             BranchId::Sapling => params
                 .activation_height(NetworkUpgrade::Sapling)
+                .map(|lower| (lower, params.activation_height(NetworkUpgrade::Ycash))),
+            BranchId::Ycash => params
+                .activation_height(NetworkUpgrade::Ycash)
                 .map(|lower| (lower, params.activation_height(NetworkUpgrade::Blossom))),
             BranchId::Blossom => params
                 .activation_height(NetworkUpgrade::Blossom)
